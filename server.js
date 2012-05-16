@@ -5,10 +5,9 @@ var querystring = require('querystring');
 
 function exe_cmd (response, cmd) {
   console.log(cmd);
-  var out_data = '';
   var ls = child_process.exec(cmd, function(error,stdout,stderr) {
       response.writeHead(200, {'Content-Type': 'text/plain'});
-      response.end(out_data);
+      response.end(stdout);
 
       if (error !== null) {
         console.log('exec error: ' + error);
@@ -30,3 +29,5 @@ http.createServer(function (req, res) {
   }
   
 }).listen(process.env.PORT || 8080, "0.0.0.0");
+
+console.log("server started on 8080 port.")

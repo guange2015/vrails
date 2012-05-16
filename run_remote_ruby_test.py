@@ -6,6 +6,8 @@ import threading
 import functools
 
 REMOTE_SERVER = "http://localhost:8080/"
+REMOTE_PROJECT_ROOT ='./'
+TEST_COMMAND = 'rspec spec --drb'
 
 class RemoteRunApiCall(threading.Thread):  
     def __init__(self,finish_callback, timeout):    
@@ -16,7 +18,8 @@ class RemoteRunApiCall(threading.Thread):
   
     def run(self):  
         try:  
-            data = urllib.urlencode({'cmd': 'rspec spec --drb'})  
+            data = urllib2.quote('cmd=cd '+REMOTE_PROJECT_ROOT+' && ' + TEST_COMMAND) 
+            print data
             request = urllib2.Request(REMOTE_SERVER\
                         +'exe_cmd?'+data, \
                         headers={"User-Agent": "Sublime Prefixr"})  
@@ -37,14 +40,16 @@ class RemoteRunCommand(sublime_plugin.TextCommand):
   def run(self, edit):
     _settings = sublime.load_settings("RemoteRubyTest.sublime-settings")
     global REMOTE_SERVER; REMOTE_SERVER = _settings.get("remote_server")
+    global REMOTE_PROJECT_ROOT; REMOTE_PROJECT_ROOT = _settings.get("remote_project_root")
+    global TEST_COMMAND; TEST_COMMAND = _settings.get("test_command")
     self.show_tests_panel()
     self.thread = RemoteRunApiCall(self.append_data, 5)
     self.thread.start()
     
   def show_tests_panel(self):
     global output_view
-    if output_view is None:
-      output_view = sublime.active_window().get_output_panel("tests")
+    #if output_view is None:
+    output_view = sublime.active_window().get_output_panel("tests")
     self.clear_test_view()
     sublime.active_window().run_command("show_panel", {"panel": "output.tests"})
 
