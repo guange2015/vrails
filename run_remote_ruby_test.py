@@ -10,15 +10,16 @@ REMOTE_PROJECT_ROOT ='./'
 TEST_COMMAND = 'rspec spec --drb'
 
 class RemoteRunApiCall(threading.Thread):  
-    def __init__(self,finish_callback, timeout):    
+    def __init__(self,finish_callback, cmd, timeout):    
         super(RemoteRunApiCall,self).__init__()
         self.timeout = timeout  
         self.result = None  
         self.finish_callback = finish_callback
+        self.cmd = cmd
   
     def run(self):  
         try:  
-            data = urllib2.quote('cmd=cd '+REMOTE_PROJECT_ROOT+' && ' + TEST_COMMAND) 
+            data = self.cmd
             print data
             request = urllib2.Request(REMOTE_SERVER\
                         +'exe_cmd?'+data, \
@@ -35,7 +36,7 @@ class RemoteRunApiCall(threading.Thread):
         sublime.set_timeout(functools.partial(self.finish_callback, self.result+"\n"), 1) 
 
 output_view = None
-class RemoteRunCommand(sublime_plugin.TextCommand):
+class BaseRemoteRunCommand(sublime_plugin.TextCommand):
   thread = None
   def run(self, edit):
     _settings = sublime.load_settings("RemoteRubyTest.sublime-settings")
@@ -43,13 +44,15 @@ class RemoteRunCommand(sublime_plugin.TextCommand):
     global REMOTE_PROJECT_ROOT; REMOTE_PROJECT_ROOT = _settings.get("remote_project_root")
     global TEST_COMMAND; TEST_COMMAND = _settings.get("test_command")
     self.show_tests_panel()
-    self.thread = RemoteRunApiCall(self.append_data, 5)
-    self.thread.start()
-    
+    self.run_command()
+
+  def run_command(self):
+    pass
+
   def show_tests_panel(self):
     global output_view
-    #if output_view is None:
-    output_view = sublime.active_window().get_output_panel("tests")
+    if output_view is None:
+      output_view = sublime.active_window().get_output_panel("tests")
     self.clear_test_view()
     sublime.active_window().run_command("show_panel", {"panel": "output.tests"})
 
@@ -76,3 +79,28 @@ class RemoteRunCommand(sublime_plugin.TextCommand):
       output_view.show(output_view.size())
     output_view.end_edit(edit)
     output_view.set_read_only(True)
+
+class RunRemoteTestCommand(BaseRemoteRunCommand):
+  def getRemoteThread(self):
+    cmd = data = urllib2.quote('cmd=cd '+REMOTE_PROJECT_ROOT+' && ' + TEST_COMMAND)
+    return RemoteRunApiCall(self.append_data, cmd, 5)
+
+  def run_command(self):
+    self.thread = self.getRemoteThread()
+    self.thread.start()
+
+class RunRemoteCmdCommand(BaseRemoteRunCommand):
+  def getRemoteThread(self,text):
+    cmd = data = urllib2.quote('cmd=cd '+REMOTE_PROJECT_ROOT+' && ' + text)
+    return RemoteRunApiCall(self.append_data, cmd, 15)
+
+  def run_command(self):
+    # self.thread = self.getRemoteThread()
+    # self.thread.start()
+    sublime.active_window().show_input_panel('Enter a command:','',
+      self.onDone, None, None)
+
+  def onDone(self,text):
+    self.show_tests_panel()
+    self.thread = self.getRemoteThread(text)
+    self.thread.start()
