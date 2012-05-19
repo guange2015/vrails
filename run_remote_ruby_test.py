@@ -4,6 +4,7 @@ import urllib
 import urllib2  
 import threading  
 import functools
+import os
 
 REMOTE_SERVER = "http://localhost:8080/"
 REMOTE_PROJECT_ROOT ='./'
@@ -104,3 +105,8 @@ class RunRemoteCmdCommand(BaseRemoteRunCommand):
     self.show_tests_panel()
     self.thread = self.getRemoteThread(text)
     self.thread.start()
+
+class OpenVrailsSettingsFile(sublime_plugin.TextCommand):
+  def run(self, edit):
+    _settings = os.path.join(os.path.dirname(__file__), "RemoteRubyTest.sublime-settings")
+    sublime.active_window().open_file(_settings)

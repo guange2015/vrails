@@ -1,0 +1,18 @@
+[
+  {
+    "id": "tools",
+    "children":
+      [
+        {
+          "caption": "vrails",
+          "children":
+            [
+              { "caption": "run rspec test", "command": "run_remote_test" },
+              { "caption": "run remote command", "command": "run_remote_cmd" },
+              { "caption": "-" },
+              { "caption": "Settings", "command": "open_vrails_settings_file" }
+            ]
+        }
+    ]
+  }
+]
