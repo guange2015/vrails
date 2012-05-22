@@ -8,12 +8,6 @@ vrails用于增强在windows上使用virtual host + Sublime Text2的体验。
 
 ChangeLog
 ------
-v0.2
-1. 修改http协议为长连接socket。
-2. Log输出更加快速和稳定，目前能支持绝大部分rails命令。
-
-v0.1
-采用node的http协议实现大致框架
 
 **v0.2**
 
