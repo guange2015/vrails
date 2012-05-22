@@ -5,36 +5,75 @@ import urllib2
 import threading  
 import functools
 import os
+import socket
+import json 
 
-REMOTE_SERVER = "http://localhost:8080/"
+# don't configure this, use menu -> Tools->vrails->settings
+REMOTE_SERVER = "localhost:8080"
 REMOTE_PROJECT_ROOT ='./'
 TEST_COMMAND = 'rspec spec --drb'
 
+class SocketRemoteRunApiCall(threading.Thread):  
+    def __init__(self,finish_callback, cmd, timeout):    
+      super(SocketRemoteRunApiCall,self).__init__()
+      self.timeout = timeout  
+      self.result = None  
+      self.finish_callback = finish_callback
+      self.cmd = cmd
+
+    def output_log(self,log):
+      sublime.set_timeout(functools.partial(self.finish_callback, log), 1) 
+
+    def run(self):
+      s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      host = REMOTE_SERVER.split(':')[0]
+      port = int(REMOTE_SERVER.split(':')[1])
+      s.connect((host, port))
+
+      params = {'cwd':'/mnt/hgfs/projects/Demo',\
+                'cmd':'bundle',\
+                'args':'install -V'}
+      send_data = json.dumps(self.cmd)
+
+      s.sendall(send_data)
+
+      data = s.recv(1024)
+      while data:
+        print data
+        self.output_log(data)
+        data = s.recv(1024)
+      s.close()
+
 class RemoteRunApiCall(threading.Thread):  
     def __init__(self,finish_callback, cmd, timeout):    
-        super(RemoteRunApiCall,self).__init__()
-        self.timeout = timeout  
-        self.result = None  
-        self.finish_callback = finish_callback
-        self.cmd = cmd
-  
-    def run(self):  
-        try:  
-            data = self.cmd
-            print data
-            request = urllib2.Request(REMOTE_SERVER\
-                        +'exe_cmd?'+data, \
-                        headers={"User-Agent": "Sublime Prefixr"})  
-            
-            http_file = urllib2.urlopen(request, timeout=self.timeout)  
-            self.result = http_file.read()  
-        except (urllib2.HTTPError) as (e):  
-            self.result = '%s: HTTP error %s contacting API' % (__name__, str(e.code))  
-        except (urllib2.URLError) as (e):  
-            self.result = '%s: URL error %s contacting API' % (__name__, str(e.reason)) 
+      super(RemoteRunApiCall,self).__init__()
+      self.timeout = timeout  
+      self.result = None  
+      self.finish_callback = finish_callback
+      self.cmd = cmd
 
-        print self.result+"\n"
-        sublime.set_timeout(functools.partial(self.finish_callback, self.result+"\n"), 1) 
+    def output_log(self,log):
+      sublime.set_timeout(functools.partial(self.finish_callback, "finished!!!\n"+log+"\n"), 1) 
+
+    def run(self):
+      data = self.cmd
+      req_url = REMOTE_SERVER +'exe_cmd?'+data
+       
+      try:  
+          request = urllib2.Request(req_url, \
+                      headers={"User-Agent": "Sublime Prefixr"})  
+          
+          http_file = urllib2.urlopen(request, timeout=self.timeout)  
+          self.result = http_file.read()  
+          self.output_log(self.result)
+          return
+      except (urllib2.HTTPError) as (e):  
+          self.result = '%s: HTTP error %s contacting API' % (__name__, str(e.code))  
+      except (urllib2.URLError) as (e):  
+          self.result = '%s: URL error %s contacting API' % (__name__, str(e.reason)) 
+
+      log = self.result + "\n" + req_url
+      self.output_log(log)
 
 output_view = None
 class BaseRemoteRunCommand(sublime_plugin.TextCommand):
@@ -83,8 +122,13 @@ class BaseRemoteRunCommand(sublime_plugin.TextCommand):
 
 class RunRemoteTestCommand(BaseRemoteRunCommand):
   def getRemoteThread(self):
-    cmd = data = urllib2.quote('cmd=cd '+REMOTE_PROJECT_ROOT+' && ' + TEST_COMMAND)
-    return RemoteRunApiCall(self.append_data, cmd, 5)
+    text = TEST_COMMAND.strip()
+    l = text.split(' ')
+    cmd = l.pop(0)
+    params = {'cwd':REMOTE_PROJECT_ROOT,\
+                'cmd':cmd,\
+                'args':l}
+    return SocketRemoteRunApiCall(self.append_data, params, 60)
 
   def run_command(self):
     self.thread = self.getRemoteThread()
@@ -92,8 +136,13 @@ class RunRemoteTestCommand(BaseRemoteRunCommand):
 
 class RunRemoteCmdCommand(BaseRemoteRunCommand):
   def getRemoteThread(self,text):
-    cmd = data = urllib2.quote('cmd=cd '+REMOTE_PROJECT_ROOT+' && ' + text)
-    return RemoteRunApiCall(self.append_data, cmd, 15)
+    text = text.strip()
+    l = text.split(' ')
+    cmd = l.pop(0)
+    params = {'cwd':REMOTE_PROJECT_ROOT,\
+                'cmd':cmd,\
+                'args':l}
+    return SocketRemoteRunApiCall(self.append_data, params, 60)
 
   def run_command(self):
     # self.thread = self.getRemoteThread()
