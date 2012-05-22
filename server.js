@@ -1,33 +1,41 @@
-// Define the module, and then spawn a new 'ls' statement
+var net =require('net');
 var child_process = require('child_process');
-var url = require('url');
-var querystring = require('querystring');
 
-function exe_cmd (response, cmd) {
-  console.log(cmd);
-  var ls = child_process.exec(cmd, function(error,stdout,stderr) {
-      response.writeHead(200, {'Content-Type': 'text/plain'});
-      response.end(stdout);
-
-      if (error !== null) {
-        console.log('exec error: ' + error);
-      }
+var server = net.createServer(function(socket){
+  console.log('server connected.');
+  socket.on('end', function(){
+    console.log('server disconnected.')
   });
-}
+  var ls ;
+  socket.on('data',function(data){
+    console.log(data.toString());
+    var params = JSON.parse(data);
+    ls = child_process.spawn(params.cmd,params.args,{cwd:params.cwd});
+    ls.stdout.on('data', console_stdout);
+    ls.stderr.on('data', console_stderr);
+    ls.on('exit',console_exit);
+  });
 
-var http = require('http');
-http.createServer(function (req, res) {
-  var url_info = url.parse(req.url);
-  if (url_info.pathname == '/exe_cmd') {
-    var params = querystring.unescape(req.url)
-    var index_string = 'exe_cmd?cmd=';
-    var cmd = params.slice(params.indexOf(index_string)+index_string.length);
-    exe_cmd(res, cmd);  
-  } else {
-    res.writeHead(200, {'Content-Type': 'text/plain'});
-    res.end('Hello World\n');
-  }
-  
-}).listen(process.env.PORT || 8080, "0.0.0.0");
+  function console_stdout(data) {
+    console.log('stdout: ' + data);
+    socket.write(data);
+  };
 
-console.log("server started on 8080 port.")
+  function console_stderr(data) {
+    console.log('stderr: ' + data);
+    socket.write(data);
+  };
+
+  function console_exit(code) {
+    console.log('child process exited with code ' + code);
+    if (code==0) {
+      socket.end('execute successed.\n');  
+    } else {
+      socket.end('execute error code '+code+'\n');  
+    }
+    
+  };
+});
+
+server.listen(8000);
+	

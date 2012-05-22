@@ -1,5 +1,5 @@
 {
-	"remote_server":"http://192.168.66.131:8080/",
-	"remote_project_root":"/home/xiao/prj/sample_app/",
+	"remote_server":"192.168.66.133:8000",
+	"remote_project_root":"/home/xiao/prj/Demo/",
 	"test_command":"rspec spec --drb"
 }
