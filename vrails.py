@@ -134,6 +134,35 @@ class RunRemoteTestCommand(BaseRemoteRunCommand):
     self.thread = self.getRemoteThread()
     self.thread.start()
 
+class RunRemoteTestAtLineCommand(BaseRemoteRunCommand):
+  def getRemoteThread(self):
+    current_file = self.get_current_file_path()
+    cmd = 'rspec'
+    args = 'spec'
+    if current_file:
+      args = '%s --line %d' % (current_file, self.get_line_no())
+    args = ('%s --drb' % args).split(' ')
+
+    params = {'cwd':REMOTE_PROJECT_ROOT,\
+                'cmd':cmd,\
+                'args':args}
+    print params
+    return SocketRemoteRunApiCall(self.append_data, params, 60)
+
+  def get_line_no(self):
+    return self.view.rowcol(self.view.sel()[0].begin())[0]+1
+
+  def get_current_file_path(self):
+    split_path = self.view.file_name().split('/spec/')
+    path = None
+    if len(split_path)>1:
+      path = os.path.join('spec',split_path[-1])
+    return path
+
+  def run_command(self):
+    self.thread = self.getRemoteThread()
+    self.thread.start()
+
 class RunRemoteCmdCommand(BaseRemoteRunCommand):
   def getRemoteThread(self,text):
     text = text.strip()

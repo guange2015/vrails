@@ -1,5 +1,5 @@
 {
-	"remote_server":"192.168.66.133:8000",
-	"remote_project_root":"/home/xiao/prj/Demo/",
+	"remote_server":"127.0.0.1:8000",
+	"remote_project_root":"/Users/hhuai/Documents/workspace/ruby/rails_project/sampleapp",
 	"test_command":"rspec spec --drb"
 }

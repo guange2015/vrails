@@ -18,7 +18,7 @@ ChangeLog
 
 1. 采用node的http协议实现大致框架
 
-how?
+how
 ----
 
 1.  切换到你的SublimeText的Package目录，如(D:\soft\editor\sublime\Data\Packages).  将vrails通过git下载到此目录下。 
@@ -28,7 +28,13 @@ how?
 
 3. 打开sublimetext 中tools-> vrails ->settings菜单，配置好相对应的项目路径及服务器地址。
 
-problem?
+** 默认快捷键 **
+
+* ``` ctrl + shift + x ``` 执行所有测试
+* ``` ctrl + shift + l ``` 执行当前行测试
+* ``` ctrl + shift + z ``` 执行远程自定义命令
+
+problem
 -------
 * 请确保vmware中的共享已打开，项目能在win和linux中都能打开。
 * 出现问题可以回vmware中看看输出。

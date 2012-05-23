@@ -8,6 +8,7 @@
           "children":
             [
               { "caption": "run rspec test", "command": "run_remote_test" },
+              { "caption": "run rspec test at line", "command": "run_remote_test_at_line" },
               { "caption": "run remote command", "command": "run_remote_cmd" },
               { "caption": "-" },
               { "caption": "Settings", "command": "open_vrails_settings_file" }

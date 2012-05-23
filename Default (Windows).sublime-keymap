@@ -1,4 +1,5 @@
 [
   { "keys": ["ctrl+shift+z"], "command": "run_remote_cmd" },
+  { "keys": ["ctrl+shift+l"], "command": "run_remote_test_at_line" },
   { "keys": ["ctrl+shift+x"], "command": "run_remote_test" }
 ]
