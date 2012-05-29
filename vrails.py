@@ -78,11 +78,12 @@ class RemoteRunApiCall(threading.Thread):
 output_view = None
 class BaseRemoteRunCommand(sublime_plugin.TextCommand):
   thread = None
-  def run(self, edit):
+  def run(self,edit,cmd=None):
     _settings = sublime.load_settings("vrails.sublime-settings")
     global REMOTE_SERVER; REMOTE_SERVER = _settings.get("remote_server")
     global REMOTE_PROJECT_ROOT; REMOTE_PROJECT_ROOT = _settings.get("remote_project_root")
     global TEST_COMMAND; TEST_COMMAND = _settings.get("test_command")
+    self.args = cmd
     self.show_tests_panel()
     self.run_command()
 
@@ -176,7 +177,10 @@ class RunRemoteCmdCommand(BaseRemoteRunCommand):
   def run_command(self):
     # self.thread = self.getRemoteThread()
     # self.thread.start()
-    sublime.active_window().show_input_panel('Enter a command:','',
+    if self.args:
+      self.onDone(self.args)
+    else:
+      sublime.active_window().show_input_panel('Enter a command:','',
       self.onDone, None, None)
 
   def onDone(self,text):
@@ -188,3 +192,12 @@ class OpenVrailsSettingsFile(sublime_plugin.TextCommand):
   def run(self, edit):
     _settings = os.path.join(sublime.packages_path(),"vrails", "vrails.sublime-settings")
     sublime.active_window().open_file(_settings)
+
+class TouchOnSave(sublime_plugin.EventListener):
+  def on_post_save(self,view):
+    path = view.file_name()
+    print "file:"+path
+    fold_path = view.window().folders()[0]
+    if path.startswith(fold_path):
+      cmd = {'cmd':'touch ' + path[len(fold_path)+1:].replace('\\','/')}
+      view.run_command('run_remote_cmd',cmd)
