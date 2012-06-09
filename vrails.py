@@ -217,7 +217,7 @@ class TouchOnSave(sublime_plugin.EventListener):
     _settings = sublime.load_settings("vrails.sublime-settings")
     touch_on_save = _settings.get("touch_on_save")
     
-    if touch_on_save == "true"
+    if touch_on_save == "true":
       path = view.file_name()
       print "file:"+path
       fold_path = view.window().folders()[0]
