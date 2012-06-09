@@ -48,7 +48,7 @@ function process (params, socket) {
   var cmd = params.cmd
   if (cmd=='?') {socket.end(help()); return null;};
   if (cmd=='starts' || cmd=='stops') {return start_rails_cmd(params,socket)};
-  if (cmd=='startspork' || cmd=='stopspork') {return start_spork_cmd(params,socket)};
+  if (cmd=='startg' || cmd=='stopg') {return start_spork_cmd(params,socket)};
   return child_process.spawn(params.cmd,params.args,{cwd:params.cwd});
 }
 
@@ -79,20 +79,20 @@ function start_rails_cmd (params,socket) {
 
 function start_spork_cmd (params,socket) {
     var ls = null;
-    if (params.cmd=='startspork') {
+    if (params.cmd=='startg') {
       if (spork_ps) {
-        socket.end('spork server already started.\n');  
+        socket.end('guard-spork already started.\n');  
         return null;
       };
       args = params.args;
       ls = child_process.spawn('spork',args,{cwd:params.cwd});
       spork_ps = ls;
-    } else if(params.cmd == 'stopspork'){
+    } else if(params.cmd == 'stopg'){
       if (spork_ps) {
         spork_ps.kill('SIGINT'); spork_ps=null;
-        socket.end('spork server stoped.\n');  
+        socket.end('guard-spork stoped.\n');  
       } else {
-        socket.end('spork server not started.\n');  
+        socket.end('guard-spork not started.\n');  
       }
       ls = null;
     } 
@@ -103,8 +103,8 @@ function start_spork_cmd (params,socket) {
 function help () {
   return 'starts - start the rails web server.\n' +
          'stops - stop the rails web server.\n' +
-         'startspork - start the spork server.\n' +
-         'stopspork - stop the spork server.\n' ;
+         'startg - start the guard-spork.\n' +
+         'stopg - stop the guard-spork.\n' ;
 }
 	
 

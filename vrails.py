@@ -28,21 +28,22 @@ class SocketRemoteRunApiCall(threading.Thread):
       s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
       host = REMOTE_SERVER.split(':')[0]
       port = int(REMOTE_SERVER.split(':')[1])
-      s.connect((host, port))
 
-      params = {'cwd':'/mnt/hgfs/projects/Demo',\
-                'cmd':'bundle',\
-                'args':'install -V'}
-      send_data = json.dumps(self.cmd)
-
-      s.sendall(send_data)
-
-      data = s.recv(1024)
-      while data:
-        print data
-        self.output_log(data)
+      try:
+        s.connect((host, port))
+        params = {'cwd':'/mnt/hgfs/projects/Demo',\
+                  'cmd':'bundle',\
+                  'args':'install -V'}
+        send_data = json.dumps(self.cmd)
+        s.sendall(send_data)
         data = s.recv(1024)
-      s.close()
+        while data:
+          self.output_log(data)
+          data = s.recv(1024)
+      except Exception, e:
+        self.output_log(str(e))
+      finally:
+        s.close()
 
 class RemoteRunApiCall(threading.Thread):  
     def __init__(self,finish_callback, cmd, timeout):    
@@ -75,7 +76,6 @@ class RemoteRunApiCall(threading.Thread):
       log = self.result + "\n" + req_url
       self.output_log(log)
 
-output_view = None
 class BaseRemoteRunCommand(sublime_plugin.TextCommand):
   thread = None
   def run(self,edit,cmd=None):
@@ -84,42 +84,41 @@ class BaseRemoteRunCommand(sublime_plugin.TextCommand):
     global REMOTE_PROJECT_ROOT; REMOTE_PROJECT_ROOT = _settings.get("remote_project_root")
     global TEST_COMMAND; TEST_COMMAND = _settings.get("test_command")
     self.args = cmd
+    self.output_view = None
     self.show_tests_panel()
     self.run_command()
+    
 
   def run_command(self):
     pass
 
   def show_tests_panel(self):
-    global output_view
-    if output_view is None:
-      output_view = sublime.active_window().get_output_panel("tests")
+    if self.output_view is None:
+      self.output_view = sublime.active_window().get_output_panel("tests")
     self.clear_test_view()
     sublime.active_window().run_command("show_panel", {"panel": "output.tests"})
 
   def clear_test_view(self):
-    global output_view
-    output_view.set_read_only(False)
-    edit = output_view.begin_edit()
-    output_view.erase(edit, sublime.Region(0, output_view.size()))
-    output_view.end_edit(edit)
-    output_view.set_read_only(True)
+    self.output_view.set_read_only(False)
+    edit = self.output_view.begin_edit()
+    self.output_view.erase(edit, sublime.Region(0, self.output_view.size()))
+    self.output_view.end_edit(edit)
+    self.output_view.set_read_only(True)
 
   def append_data(self, data):
-    global output_view
     str = data.decode("utf-8")
     str = str.replace('\r\n', '\n').replace('\r', '\n')
 
-    selection_was_at_end = (len(output_view.sel()) == 1
-      and output_view.sel()[0]
-        == sublime.Region(output_view.size()))
-    output_view.set_read_only(False)
-    edit = output_view.begin_edit()
-    output_view.insert(edit, output_view.size(), str)
+    selection_was_at_end = (len(self.output_view.sel()) == 1
+      and self.output_view.sel()[0]
+        == sublime.Region(self.output_view.size()))
+    self.output_view.set_read_only(False)
+    edit = self.output_view.begin_edit()
+    self.output_view.insert(edit, self.output_view.size(), str)
     if selection_was_at_end:
-      output_view.show(output_view.size())
-    output_view.end_edit(edit)
-    output_view.set_read_only(True)
+      self.output_view.show(self.output_view.size())
+    self.output_view.end_edit(edit)
+    self.output_view.set_read_only(True)
 
 class RunRemoteTestCommand(BaseRemoteRunCommand):
   def getRemoteThread(self):
@@ -188,6 +187,26 @@ class RunRemoteCmdCommand(BaseRemoteRunCommand):
     self.thread = self.getRemoteThread(text)
     self.thread.start()
 
+class StartRemoteRailsCommand(BaseRemoteRunCommand):
+  def getRemoteThread(self,text):
+    text = text.strip()
+    l = text.split(' ')
+    cmd = l.pop(0)
+    params = {'cwd':REMOTE_PROJECT_ROOT,\
+                'cmd':'starts',\
+                'args':l}
+    return SocketRemoteRunApiCall(self.append_data, params, 60)
+
+  def run_command(self):
+    self.thread = self.getRemoteThread('')
+    self.thread.start()
+
+  def show_tests_panel(self):
+    if self.output_view is None:
+      self.output_view = sublime.active_window().get_output_panel("rails")
+    # self.clear_test_view()
+    sublime.active_window().run_command("show_panel", {"panel": "output.rails"})
+
 class OpenVrailsSettingsFile(sublime_plugin.TextCommand):
   def run(self, edit):
     _settings = os.path.join(sublime.packages_path(),"vrails", "vrails.sublime-settings")
@@ -195,9 +214,13 @@ class OpenVrailsSettingsFile(sublime_plugin.TextCommand):
 
 class TouchOnSave(sublime_plugin.EventListener):
   def on_post_save(self,view):
-    path = view.file_name()
-    print "file:"+path
-    fold_path = view.window().folders()[0]
-    if path.startswith(fold_path):
-      cmd = {'cmd':'touch ' + path[len(fold_path)+1:].replace('\\','/')}
-      view.run_command('run_remote_cmd',cmd)
+    _settings = sublime.load_settings("vrails.sublime-settings")
+    touch_on_save = _settings.get("touch_on_save")
+    
+    if touch_on_save == "true"
+      path = view.file_name()
+      print "file:"+path
+      fold_path = view.window().folders()[0]
+      if path.startswith(fold_path):
+        cmd = {'cmd':'touch ' + path[len(fold_path)+1:].replace('\\','/')}
+        view.run_command('run_remote_cmd',cmd)

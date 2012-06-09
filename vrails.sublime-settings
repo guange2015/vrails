@@ -1,5 +1,8 @@
 {
 	"remote_server":"192.168.66.135:8000",
-	"remote_project_root":"/home/xiao/prj/depot",
-	"test_command":"rspec spec --drb"
+	"remote_project_root":"/home/xiao/prj/Demo",
+	"test_command":"rspec spec --drb",
+
+  // notify the vmware file is changed. false is default.
+  "touch_on_save": "false"
 }
